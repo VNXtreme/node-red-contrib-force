@@ -92,13 +92,13 @@
         that.setCursorPosition()
         that.locateInputData()
         that.optionsSearch()
-
+        
         that.inputData.word.length ? that.showOptions() : that.hideOptions()
       })
 
       for (var optionElement of this.html.options) {
         optionElement.addEventListener('click', function (e) {
-          that.selectOption(this.innerHTML)
+          that.selectOption(optionElement)
         })
       }
     }
@@ -120,7 +120,8 @@
       for (var option of this.options) {
         var optionElement = document.createElement('div')
         optionElement.classList.add('mention-option')
-        optionElement.innerHTML = option
+        optionElement.setAttribute('data-value', option.value)
+        optionElement.innerHTML = this.template(option)
         this.html.options.push(optionElement)
         this.html.optionsList.appendChild(optionElement)
       }
@@ -136,7 +137,6 @@
         optionHTML = '<u>@' + option + '</u>'
         storeText = storeText.replace(new RegExp('@' + option, 'g'), optionHTML)
       }
-      // this.html.display.innerHTML = storeText
     }
 
     this.optionsSearch = function () {
@@ -151,7 +151,8 @@
       while (endPosition--) {
         startPosition = endPosition
         previousCharacter = that.html.input.value[endPosition]
-        if (previousCharacter == ' ') break
+        
+        if (previousCharacter == ' ' || previousCharacter != "\n") break
         if ((previousCharacter == '@')
           && (endPosition - 1 <= 0 || that.html.input.value[endPosition - 1] == ' ')) {
           break
@@ -163,9 +164,11 @@
         end: this.cursorPosition,
         word: this.html.input.value.substring(startPosition, this.cursorPositon)
       }
-      console.log(this.inputData)
+      console.log('this.inputData', this.inputData)
     }
-
+    this.template = function (option) {
+      return option.name || option
+    }
     this.showOptions = function () {
       this.html.optionsList.classList.add('show')
     }
@@ -173,6 +176,7 @@
       this.html.optionsList.classList.remove('show')
     }
     this.selectOption = function (data) {
+      console.log('select data', data);
       this.html.input.value =
         this.html.input.value.substring(0, this.inputData.start) +
         '@' + data +
@@ -180,6 +184,7 @@
       this.updateDisplay()
       this.hideOptions()
       this.html.input.focus()
+      console.log('chatterNode chatterNode', chatterNode);
     }
 
     var that = this
@@ -195,6 +200,7 @@
       options: [],
       spans: []
     }
+    this.template = settings.template || this.template
     this.setupHTML()
     this.listen()
   }
@@ -416,6 +422,19 @@
           searchel.show();
           mentionel.show();
           window.chatterNodeIntervalId = window.setTimeout(pollChatterMention, 2000);
+
+          /*  */
+          var myMention = new Mention({
+            selector: '#node-input-content',
+            options: [
+              { name: 'User 1', value: "abc1" },
+              { name: 'User 2', value: "abc2" },
+              { name: 'User 3', value: "abc3" }
+            ],
+            template: function(option) {
+              return option.name
+            }
+          })
         } else {
           selectel.hide();
           groupel.hide();
@@ -427,11 +446,7 @@
         }
       });
 
-      /*  */
-      var myMention = new Mention({
-        selector: '#node-input-content',
-        options: ['CSS', 'Script', '.Com']
-      })
+
     },
     oneditsave: function () {
       val = parseInt($("#node-input-loadUser").val());
@@ -508,6 +523,7 @@
       $("#node-input-loadGroup").attr("disabled", true).css('background', '#727272')
       flagnextPageUrlGroup = false
     }
+    
     var mentionlist = $("#node-input-mention"),
       users = lists.users,
       groups = lists.groups,
@@ -545,7 +561,7 @@
     });
     opts += '</optgroup>';
     mentionlist.append(opts);
-
+console.log('chatterNode', chatterNode);
     mentionlist.val(chatterNode.mention.split(','));
     var selectedItems = [];
   }

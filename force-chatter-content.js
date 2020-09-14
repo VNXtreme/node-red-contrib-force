@@ -18,7 +18,6 @@ module.exports = function (RED) {
   "use strict";
   var jsforce = require("jsforce");
   var request = require("request");
-  var fs = require("fs");
 
   function ForceChatterInNode(n) {
     RED.nodes.createNode(this, n);
@@ -279,19 +278,4 @@ module.exports = function (RED) {
       callback(conn, error);
     }
   }
-
-  // function onEventKeyDown(e){
-  //   this.upDownStay = e.keyCode == 40 ? 1 : e.keyCode == 38 ? -1 : 0
-  //   if(this.reverse) this.upDownStay *= -1
-  //   if(this.upDownStay && this.showingOptions) e.preventDefault()
-  //   if(e.keyCode == 13 && this.showingOptions) {
-  //      e.preventDefault()
-  //      var option = this.html.options.find((e) => e.classList.contains('hover'))
-  //      if(option) this.onEventOptionClick(option)
-  //   }
-  // }
-
-  // window.onload = function(){
-  //   $('#node-input-content').addEventListener('keydown', (e) => { onEventKeyDown(e) })
-  // }
 };
