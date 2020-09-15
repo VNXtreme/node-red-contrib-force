@@ -22,9 +22,6 @@
   <div class="form-row">
     <label for="node-input-operation"><i class="fa fa-wrench"></i> Operation</label>
     <select type="text" id="node-input-operation">
-      <option value="get_feed">Get My Feed</option>
-      <option value="get_group">Get Group Feed</option>
-      <option value="search_feed">Search Feed</option>
       <option value="post_feed">Post Feed</option>
     </select>
   </div>
@@ -43,34 +40,36 @@
     <select id="node-input-to" >
     </select>
   </div>
-  <div class="form-row search-row">
-    <input id="searchInput" name="searchInput" onkeyup="searchMention()" type="text" placeholder="Search for Users..">
-  </div>
-  <div class="form-row input-mention-row hidden">
-    <label for="node-input-mention"><i class="fa fa-group"></i> @Mention</label>
-    <select id="node-input-mention" onchange="selectedMention()" multiple="multiple" size="5" style="width: 283px">
-    </select>
-  </div>
-  <div class="form-row load-more-row" style="padding:10px; float:left">
-    <button class="loadUserBtn" id="node-input-loadUser" style="border:none; color: #fff; background-color: #48ace4; border-radius: 5px">Load more Users</button>
-  </div>
 </script>
 
 <script type="text/x-red" data-help-name="force-chatter content">
-  <p>force.com chatter node. the following process selected in <code>Operation</code>.</p>
+  <p>Salesforce Chatter node accept the following params:</p>
   <ul>
-    <li>Get Feed</li>
-    <li>Get Group Feed</li>
-    <li>Search Feed</li>
-    <li>Post Feed</li>
+    <li>msg.payload</li>
+    <li>msg.binaryBuffer + msg.filename</li>
   </ul>
 
   <h3>Inputs</h3>
     <dl class="message-properties">
-      <dt class="optional">payload
-        <span class="property-type">string</span>
+      <dt class="optional">
+        payload <span class="property-type">array</span>
       </dt>
-      <dd> Enter a message to post. </dd>
+      <dd>
+        The message's structure to post: 
+        <pre>[{
+  text: 'Message to send',
+  mention: 'example@gmail.com' //this is optional
+}]</pre>
+      </dd>
+    </dl>
+    <dl class="message-properties">
+      <dt class="optional">
+        binaryBuffer <span class="property-type">array</span>
+      </dt>
+      <dt class="optional">
+        filename <span class="property-type">string</span>
+      </dt>
+      <dd>Binary Buffer data of image and it's filename (for example `image1.png` ).</dd>
     </dl>
 
   <h3>Outputs</h3>
@@ -78,27 +77,6 @@
       <dt>payload <span class="property-type">object</span></dt>
       <dd>Outputs the execution result of the selected process.</dd>
     </dl>
-
-  <h3>Details</h3>
-  <h4>Get Feed</h4>
-    <p> Get all feeds for logged-in users. </p>
-    <p>Store the obtained feed information in <code>msg.payload</code> and output it.</p>
-
-  <h4>Get Group Feed</h4>
-    <p> Get feed of group set to <code>Group</code>. </p>
-    <p> Set the group you want to get in <code>Group</code>. <code>Group</code> shows the group that the logged-in user is a member of.</p>
-    <p> Store the obtained group feed information in <code>msg.payload</code> and output it.</p>
-
-  <h4>Search Feed</h4>
-    <p> Search feeds with keywords set to <code>Search string</code>. </p>
-    <p> Set the keyword you want to get feed in <code>Search string</code>.</p>
-    <p> Store feed search results in <code>msg.payload</code> and output.</p>
-
-  <h4>Post Feed</h4>
-    <p> Post the message received in <code>msg.payload</code>. </p>
-    <p> Set feed post group to <code>To</code>. <code>To</code> indicates the group in which the logged-in user is a member. If it is not set, it will be posted to the person who follows the logged-in user.</p>
-    <p> <code>@Mention</code> sets the person or group that mentions the feed post. Multiple selection is possible. <code>@Mention</code> shows your organization's users and chatter groups.</p>
-    <p>Store and output the posted feed information in <code>msg.payload</code>.</p>
 
   <h3>References</h3>
     <ul>
