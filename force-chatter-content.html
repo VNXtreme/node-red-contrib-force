@@ -13,198 +13,6 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<style>
-  .mention-wrapper {
-    position: relative;
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
-  .mention-display {
-    color: rgba(0, 0, 0, 0.9);
-    position: absolute;
-    display: inline-block;
-    box-sizing: border-box;
-    pointer-events: none;
-    width: 100%;
-    height: 100%;
-    top: 0px;
-    left: 0px;
-    border-radius: 4px;
-    word-break: break-word;
-    -moz-appearance: textfield-multiline;
-    -webkit-appearance: textarea;
-    font: medium -moz-fixed;
-    font: -webkit-small-control;
-    border: 3px solid transparent;
-    padding: 10px;
-    font-size: 16px;
-  }
-
-  .mention-options {
-    position: absolute;
-    pointer-events: none;
-    opacity: 0;
-    color: rgba(0, 0, 0, 0.9);
-    width: 100%;
-    border: 3px solid transparent;
-    box-sizing: border-box;
-  }
-
-  .mention-options.show {
-    pointer-events: initial;
-    opacity: 1;
-  }
-
-  .mention-options .mention-option {
-    padding: 5px 10px;
-    background: #FFF;
-    position: relative;
-    cursor: pointer;
-    display: none;
-  }
-
-  .mention-options .mention-option:hover:after,
-  .mention-options .mention-option.active:after {
-    content: '';
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.1);
-    pointer-events: none;
-    cursor: pointer;
-  }
-
-  .mention-options .mention-option.show {
-    display: block;
-  }
-</style>
-<script type="text/javascript">
-  function Mention(settings) {
-    this.listen = function () {
-      this.html.input.addEventListener('keyup', function (e) {
-
-        // Update carret Position
-        that.updateDisplay()
-        that.setCursorPosition()
-        that.locateInputData()
-        that.optionsSearch()
-        
-        that.inputData.word.length ? that.showOptions() : that.hideOptions()
-      })
-
-      for (var optionElement of this.html.options) {
-        optionElement.addEventListener('click', function (e) {
-          that.selectOption(optionElement)
-        })
-      }
-    }
-
-    this.setupHTML = function () {
-      this.html.input = document.querySelector(settings.selector)
-      this.html.wrapper = document.createElement('div')
-      this.html.wrapper.classList.add('mention-wrapper')
-      // this.html.display = document.createElement('div')
-      // this.html.display.classList.add('mention-display')
-      this.html.input.parentElement.insertBefore(this.html.wrapper, this.html.input)
-      this.html.wrapper.appendChild(this.html.input)
-      // this.html.wrapper.appendChild(this.html.display)
-
-      this.html.optionsList = document.createElement('div')
-      this.html.optionsList.classList.add('mention-options')
-      this.html.wrapper.appendChild(this.html.optionsList)
-
-      for (var option of this.options) {
-        var optionElement = document.createElement('div')
-        optionElement.classList.add('mention-option')
-        optionElement.setAttribute('data-value', option.value)
-        optionElement.innerHTML = this.template(option)
-        this.html.options.push(optionElement)
-        this.html.optionsList.appendChild(optionElement)
-      }
-    }
-
-    this.setCursorPosition = function () {
-      this.cursorPosition = this.html.input.selectionStart
-    }
-
-    this.updateDisplay = function () {
-      var storeText = this.html.input.value
-      for (var option of this.options) {
-        optionHTML = '<u>@' + option + '</u>'
-        storeText = storeText.replace(new RegExp('@' + option, 'g'), optionHTML)
-      }
-    }
-
-    this.optionsSearch = function () {
-      for (var option of this.html.options) {
-        option.classList.toggle('show', (!this.inputData.word.length || option.innerHTML.startsWith(this.inputData.word.replace('@', ''))) ? true : false)
-      }
-    }
-
-    this.locateInputData = function () {
-      var endPosition = this.cursorPosition
-      var startPosition = this.cursorPosition
-      while (endPosition--) {
-        startPosition = endPosition
-        previousCharacter = that.html.input.value[endPosition]
-        
-        if (previousCharacter == ' ' || previousCharacter != "\n") break
-        if ((previousCharacter == '@')
-          && (endPosition - 1 <= 0 || that.html.input.value[endPosition - 1] == ' ')) {
-          break
-        }
-      }
-      if (that.html.input.value[startPosition] != '@') startPosition = this.cursorPosition
-      this.inputData = {
-        start: startPosition,
-        end: this.cursorPosition,
-        word: this.html.input.value.substring(startPosition, this.cursorPositon)
-      }
-      console.log('this.inputData', this.inputData)
-    }
-    this.template = function (option) {
-      return option.name || option
-    }
-    this.showOptions = function () {
-      this.html.optionsList.classList.add('show')
-    }
-    this.hideOptions = function () {
-      this.html.optionsList.classList.remove('show')
-    }
-    this.selectOption = function (data) {
-      console.log('select data', data);
-      this.html.input.value =
-        this.html.input.value.substring(0, this.inputData.start) +
-        '@' + data +
-        this.html.input.value.substring(this.inputData.end, this.html.input.value.length) + ' '
-      this.updateDisplay()
-      this.hideOptions()
-      this.html.input.focus()
-      console.log('chatterNode chatterNode', chatterNode);
-    }
-
-    var that = this
-    this.options = settings.options || []
-    this.selector = settings.selector
-    this.key = settings.key || '@'
-    this.cursorPosition = 0
-    this.html = {
-      input: undefined,
-      display: undefined,
-      wrapper: undefined,
-      optionsList: undefined,
-      options: [],
-      spans: []
-    }
-    this.template = settings.template || this.template
-    this.setupHTML()
-    this.listen()
-  }
-</script>
 
 <script type="text/x-red" data-template-name="force-chatter content">
   <div class="form-row">
@@ -226,13 +34,6 @@
     </select>
   </div>
 
-  <!--  -->
-  <div class="form-row input-content-row hidden">
-    <label for="node-input-content"><i class="fa fa-search"></i> Content</label>
-    <textarea id="node-input-content" style="width: 100%" ></textarea>
-  </div>
-  <!-- ./ -->
-
   <div class="form-row input-query-row hidden">
     <label for="node-input-query"><i class="fa fa-search"></i> Search string</label>
     <input type="text" id="node-input-query" >
@@ -252,19 +53,6 @@
   </div>
   <div class="form-row load-more-row" style="padding:10px; float:left">
     <button class="loadUserBtn" id="node-input-loadUser" style="border:none; color: #fff; background-color: #48ace4; border-radius: 5px">Load more Users</button>
-    <button class="loadGroupBtn" id="node-input-loadGroup" style="border:none; color: #fff; background-color: #48ace4; border-radius: 5px">Load more Groups</button>
-  </div>
-  <div class="form-row load-selected-row">
-    <div style="font-weight: bold;" >Selected Users: 
-      <p style="font-weight: normal;" id="usersSelected"></p>
-    </div>
-    <div style="font-weight: bold;" >Selected Groups: 
-      <p style="font-weight: normal;" id="groupsSelected"></p>
-    </div> 
-  </div>
-  <div class="form-row">
-    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
-    <input type="text" id="node-input-name" placeholder="Name">
   </div>
 </script>
 
@@ -330,7 +118,7 @@
     color: "#48ace4",
     defaults: {
       force: { type: "force", required: true },
-      operation: { value: "get_feed" },
+      operation: { value: "post_feed" },
       group: { value: "" },
       query: { value: "" },
       to: { value: "" },
@@ -352,7 +140,7 @@
     oneditprepare: function () {
       if (globalVal) {
         var val = parseInt($("#node-input-loadUser").attr('value', 0));
-        var val2 = parseInt($("#node-input-loadGroup").attr('value', 0));
+        // var val2 = parseInt($("#node-input-loadGroup").attr('value', 0));
         globalVal = false;
       }
       chatterNode = RED.nodes.node(this.id);
@@ -365,21 +153,21 @@
       var selectel = $(".load-selected-row");
       var selected = selectedMention();
       val = parseInt($("#node-input-loadUser").val());
-      val2 = parseInt($("#node-input-loadGroup").val());
+      // val2 = parseInt($("#node-input-loadGroup").val());
       $("#node-input-loadUser")
         .button()
         .click(function () {
           var valTemp = ++val;
           $("#node-input-loadUser").val(valTemp);
-          pollChatterMention2(valTemp, val2);
+          // pollChatterMention2(valTemp, val2);
         });
-      $("#node-input-loadGroup")
-        .button()
-        .click(function () {
-          var val2Temp = ++val2;
-          $("#node-input-loadGroup").val(val2Temp);
-          pollChatterMention2(val, val2Temp);
-        });
+      // $("#node-input-loadGroup")
+      //   .button()
+      //   .click(function () {
+      //     var val2Temp = ++val2;
+      //     $("#node-input-loadGroup").val(val2Temp);
+      //     pollChatterMention2(val, val2Temp);
+      //   });
       $("#node-input-operation").change(function () {
         if (window.chatterNodeIntervalId) {
           window.clearTimeout(window.chatterNodeIntervalId);
@@ -422,19 +210,6 @@
           searchel.show();
           mentionel.show();
           window.chatterNodeIntervalId = window.setTimeout(pollChatterMention, 2000);
-
-          /*  */
-          var myMention = new Mention({
-            selector: '#node-input-content',
-            options: [
-              { name: 'User 1', value: "abc1" },
-              { name: 'User 2', value: "abc2" },
-              { name: 'User 3', value: "abc3" }
-            ],
-            template: function(option) {
-              return option.name
-            }
-          })
         } else {
           selectel.hide();
           groupel.hide();
@@ -450,7 +225,7 @@
     },
     oneditsave: function () {
       val = parseInt($("#node-input-loadUser").val());
-      val2 = parseInt($("#node-input-loadGroup").val());
+      // val2 = parseInt($("#node-input-loadGroup").val());
       var id = $("#node-input-operation option:selected").val();
       if (id == "post_feed") {
         var selected = $("#node-input-mention").val();
@@ -520,7 +295,7 @@
       flagnextPageUrlUser = false
     }
     if (lists.groups.nextPageUrl == null || !flagnextPageUrlGroup) {
-      $("#node-input-loadGroup").attr("disabled", true).css('background', '#727272')
+      // $("#node-input-loadGroup").attr("disabled", true).css('background', '#727272')
       flagnextPageUrlGroup = false
     }
     
@@ -554,14 +329,14 @@
     });
     opts += '</optgroup>';
 
-    $("#node-input-loadGroup").text("Load more Groups (" + listGroup.length + ")").css('padding', '10px')
+    // $("#node-input-loadGroup").text("Load more Groups (" + listGroup.length + ")").css('padding', '10px')
     opts += '<optgroup label="Groups">';
     $.each(listGroup, function (i, opt) {
       opts += '<option value="' + opt.id + '">' + opt.name + '</option>';
     });
     opts += '</optgroup>';
     mentionlist.append(opts);
-console.log('chatterNode', chatterNode);
+
     mentionlist.val(chatterNode.mention.split(','));
     var selectedItems = [];
   }

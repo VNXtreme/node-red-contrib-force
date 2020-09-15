@@ -42,91 +42,74 @@ module.exports = function (RED) {
           msg.payload = result;
           node.send(msg);
         };
-        this.forceConfig.login(function (conn, err) {
+        this.forceConfig.login(async function (conn, err) {
           if (err) {
             node.sendMsg(err);
             return;
           }
-          switch (node.operation) {
-            case "get_feed":
-              conn.chatter.resource("/feeds/news/me/feed-elements").retrieve(node.sendMsg);
-              break;
-            case "get_group":
-              var url = "/feeds/record/" + node.group + "/feed-elements";
-              conn.chatter.resource(url).retrieve(node.sendMsg);
-              break;
-            case "search_feed":
-              conn.chatter.resource("/feed-elements", { q: node.query }).retrieve(node.sendMsg);
-              break;
-            case "post_feed":
-              var feedItem = {
-                body: {
-                  messageSegments: []
+          
+          /* GET mentionList */
+          let { users: mentionList} = await conn.chatter.resource("/users?&pageSize=50").retrieve(function (err, result) {
+            if (err) {
+              node.sendMsg('{"error": "error:' + err.toString() + '"}');
+            }
+            return result.users;
+          });
+          /* ./GET mentionList */
+
+          var feedItem = {
+            body: {
+              messageSegments: [],
+            },
+            feedElementType: "FeedItem",
+            subjectId: node.to || msg.topic || "me",
+          };
+
+          let messageSegments = convertTextObject(msg.payload, mentionList);
+          feedItem.body.messageSegments = messageSegments;
+
+          if (msg.filename && msg.binaryBuffer) {
+            feedItem.capabilities = {
+              content: {
+                description: "",
+                title: msg.filename,
+              },
+            };
+            var options = {
+              method: "POST",
+              url: `${conn.instanceUrl}/services/data/v${conn.version}/chatter/feed-elements`,
+              headers: {
+                Authorization: `Bearer ${conn.accessToken}`,
+              },
+              formData: {
+                feedElementFileUpload: {
+                  value: msg.binaryBuffer,
+                  options: {
+                    filename: msg.filename,
+                    contentType: "application/octet-stream",
+                  },
+                },
+                json: {
+                  value: JSON.stringify(feedItem),
+                  options: {
+                    contentType: "application/json; charset=UTF-8",
+                  },
                 },
                 feedElementType: "FeedItem",
-                subjectId: node.to || msg.topic || "me"
-              };
-              var mentions = node.mention.split(",");
-              for (var i = 0; i < mentions.length; i++) {
-                if (mentions[i]) {
-                  feedItem.body.messageSegments.push({
-                    type: "Mention",
-                    id: mentions[i]
-                  });
-                  feedItem.body.messageSegments.push({
-                    type: "Text",
-                    text: "\n"
-                  });
-                }
-              }
-              feedItem.body.messageSegments.push({
-                type: "Text",
-                text: msg.payload
-              });
-              
-              if (msg.filename && msg.binaryBuffer) {
-                //register photo
-                feedItem.capabilities = {
-                  content:{
-                    description: msg.payload,
-                    title: msg.filename
-                  }
-                };
-                var options = {
-                  method: "POST",
-                  url: `${conn.instanceUrl}/services/data/v${conn.version}/chatter/feed-elements`,
-                  headers: {
-                    Authorization: `Bearer ${conn.accessToken}`,
-                  },
-                  formData: {
-                    feedElementFileUpload: {
-                      value: msg.binaryBuffer,
-                      options: {
-                        filename: msg.filename,
-                        contentType: "application/octet-stream",
-                      },
-                    },
-                    json: {
-                      value: JSON.stringify(feedItem),
-                      options: {
-                        contentType: "application/json; charset=UTF-8",
-                      },
-                    },
-                    feedElementType: "FeedItem",
-                    subjectId: node.to || msg.topic || "me",
-                  },
-                };
-                
-                request(options, function (error, response) {
-                  if (error) throw new Error(error);
-                  msg.payload = JSON.parse(response.body);
-                  node.send(msg);
-                });
-              } else {
-                conn.chatter.resource("/feed-elements").create(feedItem, node.sendMsg);
-              }
-              break;
+                subjectId: node.to || msg.topic || "me",
+              },
+            };
+
+            request(options, function (error, response) {
+              if (error) throw new Error(error);
+              msg.payload = JSON.parse(response.body);
+              node.send(msg);
+            });
+          } else {
+            conn.chatter.resource("/feed-elements").create(feedItem, node.sendMsg);
           }
+          // break;
+          // }
         }, msg);
       });
     } else {
@@ -134,7 +117,6 @@ module.exports = function (RED) {
     }
   }
   RED.nodes.registerType("force-chatter content", ForceChatterInNode);
-
 
   RED.httpAdmin.get("/force-chatter/get-groups", function (req, res) {
     var forceCredentials = RED.nodes.getCredentials(req.query.credentials);
@@ -162,18 +144,17 @@ module.exports = function (RED) {
       clientsecret: forceConfig.credentials.clientsecret,
       accessToken: forceConfig.credentials.accessToken,
       refreshToken: forceConfig.credentials.refreshToken,
-      instanceUrl: forceConfig.credentials.instanceUrl
+      instanceUrl: forceConfig.credentials.instanceUrl,
     };
     RED.nodes.addCredentials(req.query.credentials, credentials);
 
     forceConfig.login(function (conn) {
-      conn.chatter.resource("/users/me/groups").retrieve(
-        function (err, result) {
-          if (err) {
-            return res.send('{"error": "error:' + err.toString() + '"}');
-          }
-          res.send(result);
-        });
+      conn.chatter.resource("/users/me/groups").retrieve(function (err, result) {
+        if (err) {
+          return res.send('{"error": "error:' + err.toString() + '"}');
+        }
+        res.send(result);
+      });
     }, {});
   });
 
@@ -182,13 +163,9 @@ module.exports = function (RED) {
     var forceNode = RED.nodes.getNode(req.query.id);
     var configNode = RED.nodes.getNode(req.query.credentials);
     var forceConfig = null;
-    var splitUser = res.socket.parser.incoming._parsedUrl.path.split(
-      "&userPage="
-    );
+    var splitUser = res.socket.parser.incoming._parsedUrl.path.split("&userPage=");
     var userPage = splitUser[1];
-    var splitGroup = res.socket.parser.incoming._parsedUrl.path.split(
-      "&groupPage="
-    );
+    var splitGroup = res.socket.parser.incoming._parsedUrl.path.split("&groupPage=");
     var groupPage = splitGroup[1];
     if (forceNode && forceNode.forceConfig) {
       forceConfig = forceNode.forceConfig;
@@ -210,29 +187,26 @@ module.exports = function (RED) {
       clientsecret: forceConfig.credentials.clientsecret,
       accessToken: forceConfig.credentials.accessToken,
       refreshToken: forceConfig.credentials.refreshToken,
-      instanceUrl: forceConfig.credentials.instanceUrl
+      instanceUrl: forceConfig.credentials.instanceUrl,
     };
     RED.nodes.addCredentials(req.query.credentials, credentials);
 
     forceConfig.login(function (conn, err, n) {
       var resData = { success: true };
-      conn.chatter.resource("/users?page=" + userPage + "&pageSize=50").retrieve(
-        function (err, result) {
+      conn.chatter.resource("/users?page=" + userPage + "&pageSize=50").retrieve(function (err, result) {
+        if (err) {
+          return res.send('{"error": "error:' + err.toString() + '"}');
+        }
+        resData.users = result;
+
+        conn.chatter.resource("/groups?page=" + groupPage + "&pageSize=50").retrieve(function (err, result) {
           if (err) {
             return res.send('{"error": "error:' + err.toString() + '"}');
           }
-          resData.users = result;
-
-
-          conn.chatter.resource("/groups?page=" + groupPage + "&pageSize=50").retrieve(
-            function (err, result) {
-              if (err) {
-                return res.send('{"error": "error:' + err.toString() + '"}');
-              }
-              resData.groups = result;
-              res.send(resData);
-            });
+          resData.groups = result;
+          res.send(resData);
         });
+      });
     }, {});
   });
 
@@ -248,19 +222,18 @@ module.exports = function (RED) {
         oauth2: {
           clientId: this.credentials.clientid,
           clientSecret: this.credentials.clientsecret,
-          redirectUri: null
-        }
+          redirectUri: null,
+        },
       });
       conn.initialize({
         accessToken: accessToken,
         refreshToken: this.credentials.refreshToken,
-        instanceUrl: instanceUrl
+        instanceUrl: instanceUrl,
       });
       callback(conn, error);
-
     } else if (this.logintype == "Username-Password") {
       var conn = new jsforce.Connection({
-        loginUrl: this.loginurl
+        loginUrl: this.loginurl,
       });
       var error;
 
@@ -273,9 +246,42 @@ module.exports = function (RED) {
     } else if (this.logintype == "Signed-Request") {
       var conn = new jsforce.Connection({
         accessToken: accessToken,
-        instanceUrl: instanceUrl
+        instanceUrl: instanceUrl,
       });
       callback(conn, error);
     }
+  }
+
+  function convertTextObject(payload, mentionList){
+    let messageSegments = [];
+
+    for (let i = 0; i < payload.length; i++) {
+      let textObj = payload[i];
+
+      if (textObj.mention) {
+        let mentionedUser = mentionList.find((item) => item.username === textObj.mention);
+
+        if (mentionedUser) {
+          messageSegments.push({
+            type: "Mention",
+            id: mentionedUser.id,
+          });
+          messageSegments.push({
+            type: "Text",
+            text: " ",//space
+          });
+        }
+      }
+      messageSegments.push({
+        type: "Text",
+        text: textObj.text,
+      });
+      messageSegments.push({
+        type: "Text",
+        text: "\n",
+      });
+    }
+    
+    return messageSegments;
   }
 };
